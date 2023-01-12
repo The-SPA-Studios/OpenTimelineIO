@@ -28,6 +28,11 @@ AAF_VVAL_EXTRAPOLATION_ID = uuid.UUID("0e24dd54-66cd-4f1a-b0a0-670ac3a7a0b3")
 AAF_OPERATIONDEF_SUBMASTER = uuid.UUID("f1db0f3d-8d64-11d3-80df-006008143e6f")
 
 
+AAF_PRIMARY_TIMECODE_TRACK_NUMBER = 1
+AAF_PRIMARY_TIMECODE_DEFAULT_FRAMERATE = 24
+AAF_PRIMARY_TIMECODE_DEFAULT_START = 0
+
+
 def _is_considered_gap(thing):
     """Returns whether or not thiing can be considered gap.
 
@@ -86,6 +91,25 @@ class AAFFileTranscriber:
         self._unique_mastermobs = {}
         self._unique_tapemobs = {}
         self._clip_mob_ids_map = _gather_clip_mob_ids(input_otio, **kwargs)
+        self._create_primary_timecode_track(input_otio)
+
+    def _create_primary_timecode_track(self, input_otio):
+        """Create a top-level primary timecode track."""
+        if input_otio.global_start_time:
+            edit_rate = int(input_otio.global_start_time.rate)
+            tc_start = int(input_otio.global_start_time.value)
+        else:
+            # Fallback to arbitrary default values
+            edit_rate = AAF_PRIMARY_TIMECODE_DEFAULT_FRAMERATE
+            tc_start = AAF_PRIMARY_TIMECODE_DEFAULT_START
+
+        tc_slot = self.compositionmob.create_empty_sequence_slot(edit_rate,
+                                                                 media_kind="timecode")
+        tc_slot["PhysicalTrackNumber"].value = AAF_PRIMARY_TIMECODE_TRACK_NUMBER
+
+        tc = self.aaf_file.create.Timecode(edit_rate, True)
+        tc.start = tc_start
+        tc_slot.segment = tc
 
     def _unique_mastermob(self, otio_clip):
         """Get a unique mastermob, identified by clip metadata mob id."""

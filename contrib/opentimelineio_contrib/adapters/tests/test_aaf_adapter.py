@@ -12,7 +12,8 @@ import tempfile
 import opentimelineio as otio
 from opentimelineio_contrib.adapters.aaf_adapter.aaf_writer import (
     AAFAdapterError,
-    AAFValidationError
+    AAFValidationError,
+    AAF_PRIMARY_TIMECODE_TRACK_NUMBER,
 )
 
 import io
@@ -1692,10 +1693,20 @@ class AAFWriterTests(unittest.TestCase):
             compositionmobs = list(dest.content.compositionmobs())
             self.assertEqual(1, len(compositionmobs))
             compositionmob = compositionmobs[0]
-            self.assertEqual(len(otio_timeline.tracks), len(compositionmob.slots))
+
+            # First slot should be primary timecode track
+            tc_slot = compositionmob.slots[0]
+            self.assertEqual("timecode", tc_slot.media_kind.lower())
+            self.assertEqual(
+                AAF_PRIMARY_TIMECODE_TRACK_NUMBER, tc_slot["PhysicalTrackNumber"].value)
+
+            # compositionmob.slots does not support slicing directly
+            media_tracks = list(compositionmob.slots)[1:]
+
+            self.assertEqual(len(otio_timeline.tracks), len(media_tracks))
 
             for otio_track, aaf_timeline_mobslot in zip(otio_timeline.tracks,
-                                                        compositionmob.slots):
+                                                        media_tracks):
 
                 media_kind = aaf_timeline_mobslot.media_kind.lower()
                 self.assertTrue(media_kind in ["picture", "sound"])
