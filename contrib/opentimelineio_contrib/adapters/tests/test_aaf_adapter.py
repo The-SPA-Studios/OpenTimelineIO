@@ -1735,6 +1735,7 @@ class AAFWriterTests(unittest.TestCase):
 
                     if isinstance(aaf_component, SourceClip):
                         self._verify_compositionmob_sourceclip_structure(aaf_component)
+                        self._verify_usercomments(aaf_component.mob, otio_child)
 
                     if isinstance(aaf_component, aaf2.components.OperationGroup):
                         nested_aaf_segments = aaf_component.segments
@@ -1786,6 +1787,20 @@ class AAFWriterTests(unittest.TestCase):
                     self.assertEqual(None, tapemob_clip.mob)
                     self.assertEqual(None, tapemob_clip.slot)
                     self.assertEqual(0, tapemob_clip.slot_id)
+
+    def _verify_usercomments(self, aaf_component, otio_child):
+        self.assertTrue(aaf_component is not None)
+        # Get metadata from media_reference.
+        metadata = otio_child.media_reference.metadata
+        expected_metadata = metadata.get("AAF", {}).get("UserComments", {})
+        if not expected_metadata:
+            return  # We expect nothing so we can exit this function
+
+        user_comments = aaf_component['UserComments']
+
+        for entry in user_comments:
+            self.assertTrue(entry.name in expected_metadata)
+            self.assertEqual(entry.value, expected_metadata[entry.name])
 
     def _is_otio_aaf_same(self, otio_child, aaf_component):
         if isinstance(aaf_component, SourceClip):

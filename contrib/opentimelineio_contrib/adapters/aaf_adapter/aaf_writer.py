@@ -379,6 +379,9 @@ class _TrackTranscriber:
         compmob_clip.mob = mastermob
         compmob_clip.slot = mastermob_slot
         compmob_clip.slot_id = mastermob_slot.slot_id
+
+        self._add_user_comments(otio_clip, mastermob)
+
         return compmob_clip
 
     def aaf_transition(self, otio_transition):
@@ -554,6 +557,17 @@ class _TrackTranscriber:
         mastermob_clip.slot_id = filemob_slot.slot_id
         mastermob_slot.segment = mastermob_clip
         return mastermob, mastermob_slot
+
+    def _add_user_comments(self, otio_clip, mastermob):
+        """Add user comments to a mastermob from an otio Clip metadata."""
+        metadata = otio_clip.media_reference.metadata
+
+        user_comments = []
+        metadata_comments = metadata.get("AAF", {}).get("UserComments", {})
+        for key, value in metadata_comments.items():
+            user_comments.append(self.aaf_file.create.TaggedValue(key, value))
+
+        mastermob["UserComments"].extend(user_comments)
 
 
 class VideoTrackTranscriber(_TrackTranscriber):
